@@ -1,4 +1,3 @@
-setwd("~/Desktop/salhia_lab/lenz_EPIC/")
 library(minfi)
 library(DMRcate)
 
