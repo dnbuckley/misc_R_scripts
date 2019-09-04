@@ -1,10 +1,11 @@
 library(GenomicRanges)
-source("~/misc_R_scripts/annotateInfinium.R")
+# source("~/misc_R_scripts/annotateInfinium.R")
 
 # provide filename of TCGA file, will annotate and either return or send
 annotateTCGA_EPIC <- function(filename, return = F, save = F, 
                               genome = NULL, refAnnotations = NULL, 
-                              annoDir = "~/misc_R_scripts/script_files/"){
+                              annoDir = "~/misc_R_scripts/script_files/", 
+                              saveDir = ""){
   # idiot proofing
   if (!return & !save){
     message("select return or save")
@@ -40,7 +41,12 @@ annotateTCGA_EPIC <- function(filename, return = F, save = F,
   gr <- GRanges(df)
   gr <- gr[order(gr)]
   if (save){
-    saveRDS(gr, gsub("_hg.*", ".annotated.", genome, ".rds"))
+    if (!is.null(genome)) outfile <- gsub("_hg.*", paste0(".annotated.", genome, ".rds"), filename)
+    else outfile <- gsub("_hg.*", ".annotated.rds", filename)
+    outfile <- gsub(".*\\/", "", outfile)
+    outfile <- paste0(saveDir, outfile)
+    message("saving to ", outfile)
+    saveRDS(gr, outfile)
   }
   if (return){
     return(gr)
