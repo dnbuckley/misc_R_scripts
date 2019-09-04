@@ -5,7 +5,7 @@ library(GenomicRanges)
 annotateTCGA_EPIC <- function(filename, return = F, save = F, 
                               genome = NULL, refAnnotations = NULL, 
                               annoDir = "~/misc_R_scripts/script_files/", 
-                              saveDir = ""){
+                              saveDir = "", skipLines = 0){
   # idiot proofing
   if (!return & !save){
     message("select return or save")
@@ -25,8 +25,8 @@ annotateTCGA_EPIC <- function(filename, return = F, save = F,
                    ifelse(grepl("HumanMethylation27", filename), "hm27", "EPIC"))
     refAnnotations <- readRDS(paste0(annoDir, chip, ".", genome, ".manifest.rds"))
   }
-  df <- read.table(filename, sep = "\t", header = T)
-  df <- df[, !grepl("(Chromosome|Start|End)", names(df))]
+  df <- read.table(filename, sep = "\t", header = T, skip = skipLines)
+  df <- df[, !grepl("(Chromosome|Start|End|Genomic_Coordinate)", names(df))]
   names(df)[1] <- "CpG_ID"
   df$CpG_ID <- as.character(df$CpG_ID)
   refAnnotations <- refAnnotations[order(names(refAnnotations))]
@@ -43,12 +43,15 @@ annotateTCGA_EPIC <- function(filename, return = F, save = F,
   if (save){
     if (!is.null(genome)) outfile <- gsub("_hg.*", paste0(".annotated.", genome, ".rds"), filename)
     else outfile <- gsub("_hg.*", ".annotated.rds", filename)
+    outfile <- gsub(".txt$", ".rds", outfile)
     outfile <- gsub(".*\\/", "", outfile)
     outfile <- paste0(saveDir, outfile)
     message("saving to ", outfile)
     saveRDS(gr, outfile)
+    rm(gr, df, refAnnotations)
   }
   if (return){
     return(gr)
   }
+  return(NULL)
 }
