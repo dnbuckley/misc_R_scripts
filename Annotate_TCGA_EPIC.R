@@ -26,7 +26,15 @@ annotateTCGA_EPIC <- function(filename, return = F, save = F,
     refAnnotations <- readRDS(paste0(annoDir, chip, ".", genome, ".manifest.rds"))
   }
   df <- read.table(filename, sep = "\t", header = T, skip = skipLines)
-  df <- df[, !grepl("(Chromosome|Start|End|Genomic_Coordinate)", names(df))]
+  # # some TCGA have header line some don't
+  # df <- as.matrix(df)
+  # while (!"Chromosome" %in% colnames(df)){
+  #   colnames(df) <- as.character(df[1, ])
+  #   df <- df[-1, ]
+  # }
+  # df <- as.data.frame(df)
+  names(df)[grep("(Beta|Signal)", names(df))] <- "Beta_value"
+  df <- df[, !grepl("(Chromosome|Start|End|Genomic_Coordinate|sample|position)", names(df), ignore.case = T)]
   names(df)[1] <- "CpG_ID"
   df$CpG_ID <- as.character(df$CpG_ID)
   refAnnotations <- refAnnotations[order(names(refAnnotations))]

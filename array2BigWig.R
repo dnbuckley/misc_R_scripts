@@ -13,7 +13,7 @@ array2BigWig <- function(input, outfile, outDir = "", genome = "hg19"){
   }
   gr <- granges(input)
   score(gr) <- input$Beta_value
-  score(gr)[is.na(score(gr))] <- 0
+  gr <- gr[!is.na(score(gr))]
   if (genome == "hg19") {
     seqlevels(gr) <- seqlevels(BSgenome.Hsapiens.UCSC.hg19)
     seqlengths(gr) <- seqlengths(BSgenome.Hsapiens.UCSC.hg19)
