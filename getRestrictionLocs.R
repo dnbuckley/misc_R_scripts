@@ -26,6 +26,8 @@ getRestrictionLocs <- function(sequence = "CCGG", genome = "hg19", cores = 4, mi
                                 IRanges(locs[[x]], width = nchar(sequence))))
   gr <- do.call(c, lapply(gr, .segmentCHR))
   seqinfo(gr) <- seqinfo(Hsapiens)[seqlevels(gr)]
+  start(gr) <- start(gr) - 2
+  end(gr) <- end(gr) + 2
   gr <- gr[width(gr) >= minWidth]
   gr <- gr[width(gr) <= maxWidth]
   export.bed(gr, "test.bed")
