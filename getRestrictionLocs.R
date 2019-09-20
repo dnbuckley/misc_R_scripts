@@ -13,7 +13,9 @@ library(BSgenome.Hsapiens.UCSC.hg19)
   return(x)
 }
 # default for RRBS regions determined from OVCA RRBS 9-19
-getRestrictionLocs <- function(sequence = "CCGG", genome = "hg38", cores = 4, minWidth = 30, maxWidth = 230){
+# reduce option combines adjacent regions
+getRestrictionLocs <- function(sequence = "CCGG", genome = "hg38", cores = 4,
+                               minWidth = 30, maxWidth = 230, reduce = T){
   if (genome == "hg19") {
     Hsapiens <- BSgenome.Hsapiens.UCSC.hg19
   } else if (genome == "hg38") {
@@ -30,7 +32,7 @@ getRestrictionLocs <- function(sequence = "CCGG", genome = "hg38", cores = 4, mi
   end(gr) <- end(gr) + 2
   gr <- gr[width(gr) >= minWidth]
   gr <- gr[width(gr) <= maxWidth]
-  export.bed(gr, "test.bed")
+  if (reduce) gr <- reduce(gr)
   return(gr)
 }
 
