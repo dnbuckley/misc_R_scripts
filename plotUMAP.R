@@ -24,8 +24,3 @@ plotUMAP <- function(umap, group = NULL, label = F, density = F){
   }
   return(gp)
 }
-
-ggplot(df, aes(x = x, y = y, color = group)) +
-  geom_point() +
-  theme_bw() +
-  geom_density2d()
