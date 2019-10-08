@@ -20,7 +20,7 @@ plotUMAP <- function(umap, group = NULL, label = F, density = F){
       theme_bw()
   }
   if (density){
-    gp <- gp + geom_density_2d(inherit.aes = T)
+    gp <- gp + geom_density_2d(inherit.aes = T, linemitre = 2)
   }
   return(gp)
 }
