@@ -17,5 +17,6 @@ gsetToGRanges <- function(gset, refGR = NULL){
   }
   stopifnot(identical(names(refGR), rownames(meth)))
   gr <- GRanges(refGR, mcols = meth)
+  names(mcols(gr)) <- gsub("^mcols\\.", "", names(mcols(gr)))
   return(gr[order(gr)])
 }
