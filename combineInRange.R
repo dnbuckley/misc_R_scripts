@@ -1,4 +1,4 @@
-#combine all DMRs within a given range
+#combine all GRangess within a given range
 combineInRange <- function(gr, range){
   end(gr) <- end(gr) + range
   gr <- reduce(gr)
