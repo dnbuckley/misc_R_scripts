@@ -25,13 +25,13 @@ if (0){
   # if there are 2 or more mutations more deleterious than 
   # a missense mutation return "multi-hit"
   if (nrow(ref[ref$badness >= 9, ]) >= 2){
-    return("multi-hit")
+    return("Multi_Hit")
   } else{
     return(ref$class[which(ref$badness %in% max(ref$badness))])
   }
 }
 
-maf2oncoPrint <- function(maf){
+maf2oncoPrint <- function(maf, top = NULL){
   if (class(maf) == "MAF"){
     dat <- maf@data
   } else if (class(maf) == "data.frame"){
@@ -58,13 +58,18 @@ maf2oncoPrint <- function(maf){
     df$Hugo_Symbol <- as.character(df$Hugo_Symbol)
     df$Variant_Classification <- as.character(df$Variant_Classification)
     df <- df[order(df$Hugo_Symbol), ]
-    mat[, i] <- rownames(mat) %in% df$Hugo_Symbol
+    mat[, i] <- as.logical(rownames(mat) %in% df$Hugo_Symbol)
     mutLst <- split(df$Variant_Classification, df$Hugo_Symbol)
     con <- lapply(mutLst, .getWorstMutation, ref)
-    stopifnot(identical(rownames(mat)[mat[, i]], names(con)))
-    mat[mat[, i], i] <- unlist(con)
+    stopifnot(identical(rownames(mat)[as.logical(mat[, i])], names(con)))
+    mat[as.logical(mat[, i]), i] <- unlist(con)
   }
-  mat[is.na(mat)] <- ""
+  mat[mat == "FALSE"] <- ""
+  if (!(is.null(top))){
+    numMut <- rowSums(mat != "")
+    mat <- mat[order(numMut, decreasing = T), ]
+    mat <- mat[1:top, ]
+  }
   return(mat)
 }
 
