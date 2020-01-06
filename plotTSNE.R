@@ -2,7 +2,8 @@ library(ggplot2)
 library(ggrepel)
 
 # plot a TSNE
-plotTSNE <- function(ts, group = NULL, label = F, density = F){
+plotTSNE <- function(ts, group = NULL, label = F, density = F,
+                     point.size = 1){
   df <- data.frame(x = ts[, 1], 
                    y = ts[, 2])
   if (is.null(group)) group <- rep("None", nrow(df))
@@ -10,13 +11,13 @@ plotTSNE <- function(ts, group = NULL, label = F, density = F){
   
   if (label) {
     gp <- ggplot(df, aes(x = x, y = y, color = group, label = rownames(df))) +
-      geom_point() +
+      geom_point(size = point.size) +
       theme_bw() +
       geom_text_repel()
   }
   else {
     gp <- ggplot(df, aes(x = x, y = y, color = group)) +
-      geom_point() +
+      geom_point(size = point.size) +
       theme_bw()
   }
   if (density){
