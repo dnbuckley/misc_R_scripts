@@ -1,6 +1,6 @@
 # helper function for each CHR
 .chunkChr <- function(length, chr, width = 1000){
-  starts <- seq(0, length, width)
+  starts <- seq(1, length, width)
   ends <- starts[2:length(starts)] - 1
   starts <- starts[1:length(starts) - 1]
   ends[length(ends)] <- length
@@ -11,7 +11,10 @@
 }
 
 # returns whole genome non overlapping GRanges object of width n
-getChrChunks <- function(chromLengths = NULL, genome = NULL, width = 1000, allosomes = F){
+getChrChunks <- function(chromLengths = NULL, 
+                         genome = NULL, 
+                         width = 1000, 
+                         allosomes = F){
   if (is.null(chromLengths) && is.null(genome)){
     message("provide a seqLengths object or genome option... dumbass")
     return(NULL)
