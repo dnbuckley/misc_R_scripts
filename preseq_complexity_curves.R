@@ -2,7 +2,7 @@ library(ggplot2)
 library(reshape2)
 
 # plots complexity curve from preseq output
-preseqComplexityCurve <- function(files, sampleNames = NULL){
+preseqComplexityCurve <- function(files, sampleNames = NULL, returnDF = F){
   crvs <- lapply(files, read.table, header = T)
   domains <- lapply(crvs, function(x) x$total_reads)
   domain <- max(unlist(domains))
@@ -22,7 +22,10 @@ preseqComplexityCurve <- function(files, sampleNames = NULL){
     mat[, i+1] <- v
   }
   df <- melt(as.data.frame(mat), id.vars = "total_reads")
-  ggplot(df, aes(x = total_reads, y = value, color = variable)) +
+  if (returnDF){
+    return(df)
+  }
+  gp <- ggplot(df, aes(x = total_reads, y = value, color = variable)) +
     geom_line(size = 1) +
     ylab("distinct_reads") +
     theme_bw() +
@@ -31,6 +34,7 @@ preseqComplexityCurve <- function(files, sampleNames = NULL){
                 color = "dodgerblue", 
                 linetype = "dashed",
                 size = 1)
+  return(gp)
 }
 
 
