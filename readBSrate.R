@@ -11,7 +11,8 @@ readBSrate <- function(file, summary = F) {
                      pos.conv.rate = pos[1],
                      neg.conv.rate = neg[1],
                      pos.conv.count = pos[2],
-                     neg.conv.count = neg[2])
+                     neg.conv.count = neg[2],
+                     stringsAsFactors = F)
   } else {
     df <- read.table(file, skip = 3, header = T)
   }
