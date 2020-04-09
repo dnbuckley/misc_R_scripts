@@ -24,8 +24,8 @@ getRestrictionLocs <- function(sequence = "CCGG", genome = "hg38", cores = 4,
   chrs <- names(Hsapiens)[1:24]
   locs <- mclapply(chrs, function(x) start(matchPattern(sequence, 
                                               Hsapiens[[x]])), mc.cores = cores)
-  gr <- lapply(1:24, function(x) GRanges(names(Hsapiens)[x], 
-                                IRanges(locs[[x]], width = nchar(sequence))))
+  gr <- mclapply(1:24, function(x) GRanges(names(Hsapiens)[x], 
+                                IRanges(locs[[x]], width = nchar(sequence))), mc.cores = cores)
   gr <- do.call("c", lapply(gr, .segmentCHR))
   seqinfo(gr) <- seqinfo(Hsapiens)[seqlevels(gr)]
   start(gr) <- start(gr) - 2

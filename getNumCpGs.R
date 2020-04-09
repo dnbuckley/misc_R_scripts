@@ -19,5 +19,10 @@ getNumCpGs <- function(gr, cpGR = NULL, genome = "hg19"){
     cpGR <- .getCpGs(genome)
   }
   ovlp <- findOverlaps(cpGR, gr)
-  return(as.vector(table(to(ovlp))))
+  n <- as.vector(table(to(ovlp)))
+  if (length(n) > 0) {
+    return(n)
+  }
+  return(0)
 }
+
