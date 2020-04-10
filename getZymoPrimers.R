@@ -36,7 +36,7 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
                        strand = strand(neg))
   table <- rbind.data.frame(posTab, negTab)
   write.table(table, "seqs.tsv", col.names = F, row.names = F, quote = F, sep = "\t")
-  cmd <- "/opt/anaconda3/bin/python ~/Desktop/salhia_lab/automate_primer_design/zymo_design.py seqs.tsv"
+  cmd <- "/opt/anaconda3/bin/python ~/misc_R_scripts/zymo_design.py seqs.tsv"
   message("Launching Zymo Bisulfite Primer Seeker...")
   system(cmd)
   pri <- read.table("zymo_output.txt", sep = "\t", header = T)
@@ -68,7 +68,7 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   if (!is.null(bwsA) & !is.null(bwsB)) {
     all.primers$dmrvalue <- .getDMvalue(all.primers, bwsA, bwsB)
   }
-  all.primers$mt.diff <- abs(all.primers$melting.temp.forward-all.primers$melting.temp.reverse)
+  all.primers$tm.diff <- abs(all.primers$melting.temp.forward-all.primers$melting.temp.reverse)
   all.primers <- .classPrimers(all.primers)
   return(all.primers)
 }
@@ -119,7 +119,7 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high mt, high #CpG
 .getClassA <- function(primers) {
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$mt.diff <= 2, ]
+  primers <- primers[primers$tm.diff <= 2, ]
   primers <- primers[primers$melting.temp.forward > 60, ]
   primers <- primers[primers$melting.temp.reverse > 60, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
@@ -129,7 +129,7 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high #CpG
 .getClassB <- function(primers){
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$mt.diff <= 2, ]
+  primers <- primers[primers$tm.diff <= 2, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
