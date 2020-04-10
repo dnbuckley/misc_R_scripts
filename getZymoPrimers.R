@@ -17,9 +17,9 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
     gr <- gr[idx]
     IDs <- IDs[idx]
   }
-  if (any(width(gr) < 100)) {
+  if (any(width(gr) < 115)) {
     message("Some regions are < 100b, removing...")
-    idx <- width(gr) > 100
+    idx <- width(gr) > 115
     gr <- gr[idx]
     IDs <- IDs[idx]
   }
@@ -69,7 +69,7 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
     all.primers$dmrvalue <- .getDMvalue(all.primers, bwsA, bwsB)
   }
   all.primers$mt.diff <- abs(all.primers$melting.temp.forward-all.primers$melting.temp.reverse)
-  all.primers <- classPrimers(all.primers)
+  all.primers <- .classPrimers(all.primers)
   return(all.primers)
 }
 
@@ -119,7 +119,7 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high mt, high #CpG
 .getClassA <- function(primers) {
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$mt.diff <= 1, ]
+  primers <- primers[primers$mt.diff <= 2, ]
   primers <- primers[primers$melting.temp.forward > 60, ]
   primers <- primers[primers$melting.temp.reverse > 60, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
@@ -129,7 +129,7 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high #CpG
 .getClassB <- function(primers){
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$mt.diff <= 1, ]
+  primers <- primers[primers$mt.diff <= 2, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
@@ -190,6 +190,7 @@ getBestPrimer <- function(primers) {
                  strand = "+")
   stopifnot(width(fP)+width(rP)+width(tgt) == width(amp))
   ret <- data.frame(ID = ID,
+                    condition = unique(a$condition),
                     amp.number = unique(a$amp),
                     amplicon.width = width(amp),
                     origin.strand = "+",
@@ -230,6 +231,7 @@ getBestPrimer <- function(primers) {
                  strand = "-")
   stopifnot(width(fP)+width(rP)+width(tgt) == width(amp))
   ret <- data.frame(ID = ID,
+                    condition = unique(a$condition),
                     amp.number = unique(a$amp),
                     amplicon.width = width(amp),
                     origin.strand = "-",
