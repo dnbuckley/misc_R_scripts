@@ -17,13 +17,16 @@ plotPrimers <- function(primers, pdfFileName, genome, bwsA, bwsB, simpleFilter =
   dir.create("all_pdfs/")
   for (i in 1:length(byID)) {
     df <- byID[[i]]
-    grb <- arrangeGrob(plots[[i]], tables[[i]], nrow = 2,
-                       top = textGrob(paste0(unique(df$ID), "\n", 
-                                             unique(df$origin.region)), 
-                                      gp=gpar(fontsize=20,font=8)))
+    kableExtra::kable(df, "latex")
+    # grb <- arrangeGrob(plots[[i]], tables[[i]], nrow = 2,
+    #                    top = textGrob(paste0(unique(df$ID), "\n", 
+    #                                          unique(df$origin.region)), 
+    #                                   gp=gpar(fontsize=20,font=8)))
     
   pdf(paste0("all_pdfs/", unique(df$ID), ".pdf"), height = 15, width = 26)
-  grid.arrange(grb)
+  # grid.arrange(grb)
+  grid.arrange(plots[[i]])
+  kableExtra::kable(tables[[i]], "latex")
   dev.off()
   }
   pdfs <- list.files("all_pdfs/", full.names = T)
@@ -34,8 +37,9 @@ plotPrimers <- function(primers, pdfFileName, genome, bwsA, bwsB, simpleFilter =
   df$ID <- seq(1:nrow(df))
   names(df)[names(df) == "ID"] <- "plot.amp.label"
   df <- df[, !names(df) %in% c("amp.number", "origin.regon")]
-  t <- tableGrob(df, theme = ttheme_default(base_size = 10), rows = NULL)
-  return(t)
+  # t <- tableGrob(df, theme = ttheme_default(base_size = 10), rows = NULL)
+  # return(t)
+  return(df)
 }
 
 .getDatTrackFromBWs <- function(b, g, title = "") {
