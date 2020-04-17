@@ -74,7 +74,7 @@ def page_init(driver, seq,
     primerMaxLenBox = driver.find_element_by_xpath('//*[@id="form"]/div/div[2]/div[1]/div[2]/input')
     primerMaxLenBox.clear()
     primerMaxLenBox.send_keys(primerMaxLen)
-      # enter sequence
+    # enter sequence
     seqBox.clear()
     seqBox.send_keys(seq)
     # click the button
