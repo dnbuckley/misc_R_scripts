@@ -2,7 +2,7 @@ library(ggplot2)
 library(ggrepel)
 
 # plot a UMAP
-plotUMAP <- function(umap, group = NULL, label = F, density = F, point.size = 1){
+plotUMAP <- function(umap, group = NULL, label = F, density = F, point.size = 1, geom.density.bins = 10){
   df <- data.frame(x = umap$layout[, 1], 
                    y = umap$layout[, 2])
   if (is.null(group)) group <- rep("None", nrow(df))
@@ -20,7 +20,7 @@ plotUMAP <- function(umap, group = NULL, label = F, density = F, point.size = 1)
       theme_bw()
   }
   if (density){
-    gp <- gp + geom_density_2d(inherit.aes = T, linemitre = 2)
+    gp <- gp + geom_density_2d(inherit.aes = T, linemitre = 2, bins = geom.density.bins)
   }
   return(gp)
 }

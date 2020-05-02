@@ -16,5 +16,6 @@ callCopyNumbers <- function(readCounts, normRef = NULL, noisePlot = T){
   }
   copyNumbersSegmented <- normalizeSegmentedBins(copyNumbersSegmented)
   copyNumbersCalled <- callBins(copyNumbersSegmented)
+  copyNumbersCalled <- makeCgh(copyNumbersCalled, filter = F)
   return(copyNumbersCalled)
 }
