@@ -1,7 +1,7 @@
 library(QDNAseq)
 
 # standard QDNAseq pipeline
-callCopyNumbers <- function(readCounts, normRef = NULL, noisePlot = T){
+callCopyNumbers <- function(readCounts, normRef = NULL, noisePlot = T, returnCGH = T){
   readCountsFiltered <- applyFilters(readCounts, residual = T, blacklist = T)
   readCountsFiltered <- estimateCorrection(readCountsFiltered)
   if (noisePlot) noisePlot(readCountsFiltered)
@@ -16,6 +16,8 @@ callCopyNumbers <- function(readCounts, normRef = NULL, noisePlot = T){
   }
   copyNumbersSegmented <- normalizeSegmentedBins(copyNumbersSegmented)
   copyNumbersCalled <- callBins(copyNumbersSegmented)
-  copyNumbersCalled <- makeCgh(copyNumbersCalled, filter = F)
+  if (returnCGH){
+    copyNumbersCalled <- makeCgh(copyNumbersCalled, filter = F)
+  }
   return(copyNumbersCalled)
 }
