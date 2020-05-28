@@ -25,6 +25,10 @@ getCopyNumberPerGene <- function(copyNumbersCalled,
   genes <- genes[order(genes)]
   genes <- genes[!is.na(genes$SYMBOL)]
   cn <- as.data.frame(assayDataElement(copyNumbersCalled, "copynumber"))
+  if (width(GRanges(rownames(cn)[1])) > 5000) {
+    warning("QDNAseq object has a binsize of > 5000, for gene level
+copy number you may want to use a smaller binsize.")
+  }
   rownames(cn) <- paste0("chr", rownames(cn))
   message("Finding overlaps between QDNAseq object and reference genes...")
   ovlp <- findOverlaps(GRanges(rownames(cn)), genes)
