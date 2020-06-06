@@ -147,29 +147,26 @@ for r in seqs:
               115, 180,
               60, 65,
               24, 36)
-    fail = parse_page(driver, out, ID, "1")
+    fail1 = parse_page(driver, out, ID, "1")
     # Condition 2
-    if (fail):
-        page_init(driver, seq,
-                  115, 180,
-                  55, 65,
-                  24, 36)
-        fail = parse_page(driver, out, ID, "2")
+    page_init(driver, seq,
+              115, 180,
+              55, 65,
+              24, 36)
+    fail2 = parse_page(driver, out, ID, "2")
     # Condition 3
-    if (fail):
-        page_init(driver, seq,
-                  115, 225,
-                  55, 65,
-                  24, 36)
-        fail = parse_page(driver, out, ID, "3")
+    page_init(driver, seq,
+              115, 225,
+              55, 65,
+              24, 36)
+    fail3 = parse_page(driver, out, ID, "3")
     # Condition 4
-    if (fail):
-        page_init(driver, seq,
-                  115, 225,
-                  55, 65,
-                  21, 36)
-        fail = parse_page(driver, out, ID, "4")
-    if (fail):
+    page_init(driver, seq,
+              115, 225,
+              55, 65,
+              21, 36)
+    fail4 = parse_page(driver, out, ID, "4")
+    if (fail1 and fail2 and fail3 and fail4):
         print("No primers found under any condition.")
         sys.stdout.flush()
     

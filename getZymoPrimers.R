@@ -11,17 +11,18 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   source("~/misc_R_scripts/getCpGLocs.R")
   if (genome == "hg19") BSgenome <- BSgenome.Hsapiens.UCSC.hg19
   if (genome == "hg38") BSgenome <- BSgenome.Hsapiens.UCSC.hg38
-  if (any(width(gr) > 2000)) {
-    message("Some regions are > 2000b, removing...")
-    idx <- width(gr) < 2000
-    gr <- gr[idx]
-    IDs <- IDs[idx]
+  original.granges <- GRanges(gr)
+  while (any(width(gr) > 2000)) {
+    message("Some regions are > 2000b, shrinking by 20b...")
+    idx <- width(gr) > 2000
+    start(gr[idx]) <- start(gr[idx])+10
+    end(gr[idx]) <- end(gr[idx])-10
   }
-  if (any(width(gr) < 115)) {
-    message("Some regions are < 100b, removing...")
-    idx <- width(gr) > 115
-    gr <- gr[idx]
-    IDs <- IDs[idx]
+  while (any(width(gr) < 115)) {
+    message("Some regions are < 115, expanding by 20b...")
+    idx <- width(gr) < 115
+    start(gr[idx]) <- start(gr[idx])-10
+    end(gr[idx]) <- end(gr[idx])+10
   }
   strand(gr) <- "*"
   pos <- gr
@@ -41,7 +42,9 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   system(cmd)
   pri <- read.table("zymo_output.txt", sep = "\t", header = T)
   system("rm seqs.tsv")
+  pri$amp <- paste0(pri$amp, "-C", pri$condition)
   pri <- split(pri, pri$ID)
+  pri <- lapply(pri, .removeIdenticalPrimers)
   grs <- as.list(split(gr, IDs))
   pri <- pri[order(names(pri))]
   grs <- grs[order(names(grs))]
@@ -55,22 +58,49 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   }
   stopifnot(identical(names(pri), names(grs)))
   message("Found ", sum(sapply(pri, nrow))/2, " potential primers.")
-  message("Calculating genomic coordinates and CpG counts for ", genome, "...")
+  message("Calculating genomic coordinates and CpG counts using ", genome, "...")
   cpgrpos <- getCpGLocs(strand = "+", genome = genome)
   cpgrneg <- getCpGLocs(strand = "-", genome = genome)
-  all.primers <- mcmapply(.calculatePositions, grs, pri, 
-                          MoreArgs = list(genome = genome, 
-                                          cpgrpos = cpgrpos,
-                                          cpgrneg = cpgrneg),
-                          SIMPLIFY = F, mc.cores = detectCores()-2)
+  all.primers <- mapply(.calculatePositions, grs, pri, 
+                        MoreArgs = list(genome = genome, 
+                                        cpgrpos = cpgrpos,
+                                        cpgrneg = cpgrneg),
+                        SIMPLIFY = F)
   all.primers <- do.call(rbind, all.primers)
   rownames(all.primers) <- NULL
   if (!is.null(bwsA) & !is.null(bwsB)) {
-    all.primers$dmrvalue <- .getDMvalue(all.primers, bwsA, bwsB)
+    all.primers$target.region.dmrvalue <- .getDMvalue(all.primers, bwsA, bwsB)
   }
-  all.primers$tm.diff <- abs(all.primers$melting.temp.forward-all.primers$melting.temp.reverse)
   all.primers <- .classPrimers(all.primers)
+  all.primers$method <- ifelse(width(GRanges(all.primers$origin.region)) >= 250, "tiling", "regular")
+  all.primers$was.resized <- .checkAgainstOriginal(all.primers, original.granges)
   return(all.primers)
+}
+
+.checkAgainstOriginal <- function(df, ref) {
+  pr <- GRanges(df$origin.region)
+  ovlp <- findOverlaps(pr, ref, type = "equal")
+  was.resized <- rep(T, nrow(df))
+  was.resized[from(ovlp)] <- F
+  return(was.resized)
+}
+
+# remove identical primers found under different conditions
+.removeIdenticalPrimers <- function(p) {
+  amps <- split(p, paste0(p$amp, p$strand))
+  stopifnot(all(sapply(amps, nrow) == 2))
+  df <- data.frame(name = names(amps),
+                   loc = sapply(amps, function(x){paste0(x$ID, x$seq, x$start, collapse = "")}),
+                   condition = sapply(amps, function(x) unique(x$condition)))
+  t <- as.data.frame(table(df$loc))
+  rep <- df[df$loc %in% t$Var1[t$Freq > 1], ]
+  rep <- split(rep, rep$loc)
+  # get rid of the one with higher (worst) condition
+  rep <- do.call(rbind, lapply(rep, function(x){x[x$condition %in% max(x$condition), ]}))
+  amps <- amps[!names(amps) %in% rep$name]
+  p <- do.call(rbind, amps)
+  rownames(p) <- NULL
+  return(p)
 }
 
 .getDMvalue <- function(primers, bwsA, bwsB) {
@@ -83,23 +113,14 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   return(mA-mB)
 }
 
-getBestPrimer <- function(primers) {
-  byID <- split(primers, primers$ID)
-  byID <- lapply(byID, .getMostCpGs)
-  byID <- lapply(byID, .getFewestPrimerCpGs)
-  byID <- lapply(byID, .getHighestCpGDensity)
-  byID <- lapply(byID, .getSmallest)
-  df <- do.call(rbind, byID)
-  return(df)
-}
-
 .classPrimers <- function(primers) {
   primers$tempid <- paste0(primers$ID, "_", primers$amp.number, ":", primers$origin.strand)
   classA <- .getClassA(primers)
   classB <- setdiff(.getClassB(primers), classA)
   classC <- setdiff(.getClassC(primers), c(classB, classA))
   classD <- setdiff(.getClassD(primers), c(classC, classB, classA))
-  classF <- setdiff(primers$tempid, c(classD, classC, classB, classA))
+  classE <- setdiff(.getClassE(primers), c(classD, classC, classB, classA))
+  classF <- setdiff(primers$tempid, c(classE, classD, classC, classB, classA))
   t <- sum(length(classA),
       length(classB),
       length(classC),
@@ -119,9 +140,8 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high mt, high #CpG
 .getClassA <- function(primers) {
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$tm.diff <= 2, ]
-  primers <- primers[primers$melting.temp.forward > 60, ]
-  primers <- primers[primers$melting.temp.reverse > 60, ]
+  primers <- primers[primers$melt.temp.diff <= 2, ]
+  primers <- primers[primers$condition == 1, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
@@ -129,7 +149,8 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, low mtdiff, high #CpG
 .getClassB <- function(primers){
   primers <- primers[!primers$cpg.3p.flag, ]
-  primers <- primers[primers$tm.diff <= 2, ]
+  primers <- primers[primers$melt.temp.diff <= 2, ]
+  primers <- primers[primers$condition == 2, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
@@ -137,36 +158,41 @@ getBestPrimer <- function(primers) {
 # no 3' Cpg, high #CpG
 .getClassC <- function(primers){
   primers <- primers[!primers$cpg.3p.flag, ]
+  primers <- primers[primers$melt.temp.diff <= 2, ]
+  primers <- primers[primers$condition == 3, ]
   primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
 
 .getClassD <- function(primers) {
   primers <- primers[!primers$cpg.3p.flag, ]
+  primers <- primers[primers$melt.temp.diff <= 2, ]
+  primers <- primers[primers$condition == 4, ]
+  primers <- primers[primers$target.region.CpGs >= 5, ]
   return(primers$tempid)
 }
 
-.getMostCpGs <- function(df) {
-  df <- df[df$target.region.CpGs %in% max(df$target.region.CpGs), ]
-  return(df)
+.getClassE <- function(primers) {
+  primers <- primers[!primers$cpg.3p.flag, ]
+  primers <- primers[primers$target.region.CpGs >= 3, ]
 }
 
-.getFewestPrimerCpGs <- function(df) {
-  total <- df$forward.primer.CpGs+df$reverse.primer.CpGs
-  df <- df[total %in% min(total), ]
-  return(df)
+.getNumCpGforward <- function(fps) {
+  fps <- strsplit(fps, "")
+  if (any(grepl("R", fps))) {
+    stop("Found 'R' in forward primer, should not happen.")
+  }
+  return(sum(grepl("Y", fps)))
 }
 
-.getHighestCpGDensity <- function(df){
-  density <- df$target.region.CpGs/width(GRanges(df$target.region))
-  df <- df[density %in% max(density), ]
-  return(df)
+.getNumCpGreverse <- function(rps) {
+  rps <- strsplit(rps, "")
+  if (any(grepl("Y", rps))) {
+    stop("Found 'Y' in forward primer, should not happen.")
+  }
+  return(sum(grepl("R", rps)))
 }
 
-.getSmallest <- function(df) {
-  df <- df[df$amplicon.width %in% min(df$amplicon.width), ]
-  return(df)
-}
 
 .getAmpGRPos <- function(a, g, cpgr, ID) {
   stopifnot(nrow(a) == 2)
@@ -201,11 +227,12 @@ getBestPrimer <- function(primers) {
                     origin.region = paste0(g),
                     forward.sequence = f$seq,
                     reverse.sequence = r$seq,
-                    forward.primer.CpGs = getNumCpGs(fP, cpgr),
-                    reverse.primer.CpGs = getNumCpGs(rP, cpgr),
+                    forward.primer.CpGs = .getNumCpGforward(f$seq),
+                    reverse.primer.CpGs = .getNumCpGreverse(r$seq),
                     target.region.CpGs = getNumCpGs(tgt, cpgr),
                     melting.temp.forward = f$melting_temp,
-                    melting.temp.reverse = r$melting_temp)
+                    melting.temp.reverse = r$melting_temp,
+                    melt.temp.diff = abs(f$melting_temp-r$melting_temp))
   return(ret)
 }
 
@@ -242,55 +269,75 @@ getBestPrimer <- function(primers) {
                     origin.region = paste0(g),
                     forward.sequence = f$seq,
                     reverse.sequence = r$seq,
-                    forward.primer.CpGs = getNumCpGs(fP, cpgr),
-                    reverse.primer.CpGs = getNumCpGs(rP, cpgr),
+                    forward.primer.CpGs = .getNumCpGforward(f$seq),
+                    reverse.primer.CpGs = .getNumCpGreverse(r$seq),
                     target.region.CpGs = getNumCpGs(tgt, cpgr),
                     melting.temp.forward = f$melting_temp,
-                    melting.temp.reverse = r$melting_temp)
+                    melting.temp.reverse = r$melting_temp,
+                    melt.temp.diff = abs(f$melting_temp-r$melting_temp))
   return(ret)
 }
 
 .calculatePositions <- function(g, p, genome, cpgrpos, cpgrneg){
+  message("Calculating genomic coordinates and CpG counts for ", unique(p$ID), "...")
   pos <- p[p$strand == "+", ]
   neg <- p[p$strand == "-", ]
   res <- NULL
   if (nrow(pos) > 0) {
     amps <- split(pos, as.character(pos$amp))
-    pos <- do.call(rbind.data.frame, lapply(amps, .getAmpGRPos, g, cpgr = cpgrpos, ID = unique(pos$ID)))
-    flag <- .flag3PrimeCpG(pos, cpgrpos, "+")
-    pos$cpg.3p.flag <- flag$CpG.flag.either
+    pos <- do.call(rbind.data.frame, mclapply(amps, .getAmpGRPos, g, cpgr = cpgrpos, 
+                                              ID = unique(pos$ID), mc.cores = detectCores()-2))
+    # flag <- .flag3PrimeCpG(pos, cpgrpos, "+")
+    # flag <-.flag3PrimeCpG(pos)
+    # pos$cpg.3p.flag <- flag$CpG.flag.either
     res[[length(res)+1]] <- pos
   } 
   if (nrow(neg) > 0) {
     amps <- split(neg, as.character(neg$amp))
-    neg <- do.call(rbind.data.frame, lapply(amps, .getAmpGRNeg, g, cpgr = cpgrneg, ID = unique(neg$ID)))
-    flag <- .flag3PrimeCpG(neg, cpgrneg, "-")
-    neg$cpg.3p.flag <- flag$CpG.flag.either
+    neg <- do.call(rbind.data.frame, mclapply(amps, .getAmpGRNeg, g, cpgr = cpgrneg, 
+                                              ID = unique(neg$ID), mc.cores = detectCores()-2))
+    # flag <- .flag3PrimeCpG(neg, cpgrneg, "-")
+    # flag <-.flag3PrimeCpG(neg)
+    # neg$cpg.3p.flag <- flag$CpG.flag.either
     res[[length(res)+1]] <- neg
   }
-  return(do.call(rbind.data.frame, res))
+  p <- do.call(rbind.data.frame, res)
+  p$cpg.3p.flag <- .flag3PrimeCpG(p)
+  return(p)
 }
 
 # get the 2/3 of the primer at the 3' end
 # and flag if it has a cpg
-.flag3PrimeCpG <- function(p, cpgr, strand) {
-  f <- GRanges(p$forward.primer)
-  r <- GRanges(p$reverse.primer)
-  if (strand == "+") {
-    start(f) <- start(f)+floor(width(f)*(1/3))
-    start(r) <- start(r)+floor(width(r)*(1/3))
-  }
-  else if (strand == "-") {
-    end(f) <- end(f)-floor(width(f)*(1/3))
-    end(r) <- end(r)-floor(width(r)*(1/3))
-  } else stop("Invalid strand")
-  ovlpf <- findOverlaps(f, cpgr)
-  ovlpr <- findOverlaps(r, cpgr)
-  ret <- data.frame(forward.primer.CpG.flag = 1:length(f) %in% from(ovlpf),
-                    reverse.primer.CpG.flag = 1:length(r) %in% from(ovlpr))
-  ret$CpG.flag.either <- ret$forward.primer.CpG.flag | ret$reverse.primer.CpG.flag
-  return(ret)
+.flag3PrimeCpG <- function(p) {
+  f.2.3 <- sapply(p$forward.sequence, function(x){
+    x <- substr(x, floor((nchar(x)*1)/3), nchar(x))
+    grepl("Y", x)
+  })
+  r.2.3 <- sapply(p$reverse.sequence, function(x){
+    x <- substr(x, floor((nchar(x)*1)/3), nchar(x))
+    grepl("R", x)
+  })
+  return(f.2.3 | r.2.3)
 }
+
+# .flag3PrimeCpG <- function(p, cpgr, strand) {
+#   f <- GRanges(p$forward.primer)
+#   r <- GRanges(p$reverse.primer)
+#   if (strand == "+") {
+#     start(f) <- start(f)+floor(width(f)*(1/3))
+#     start(r) <- start(r)+floor(width(r)*(1/3))
+#   }
+#   else if (strand == "-") {
+#     end(f) <- end(f)-floor(width(f)*(1/3))
+#     end(r) <- end(r)-floor(width(r)*(1/3))
+#   } else stop("Invalid strand")
+#   ovlpf <- findOverlaps(f, cpgr)
+#   ovlpr <- findOverlaps(r, cpgr)
+#   ret <- data.frame(forward.primer.CpG.flag = 1:length(f) %in% from(ovlpf),
+#                     reverse.primer.CpG.flag = 1:length(r) %in% from(ovlpr))
+#   ret$CpG.flag.either <- ret$forward.primer.CpG.flag | ret$reverse.primer.CpG.flag
+#   return(ret)
+# }
 
 
 
