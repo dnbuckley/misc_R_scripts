@@ -5,8 +5,12 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 
 # uses zymo bisulfite primer seeker to find primer loci
 # for set of regions
+# gr <- tnbc
+# genome <- "hg19"
+# nZymoDrivers <- 1
 getZymoPrimers <- function(gr, IDs, genome = "hg38",
-                           bwsA = NULL, bwsB = NULL){
+                           bwsA = NULL, bwsB = NULL,
+                           nZymoDrivers = 1){
   source("~/misc_R_scripts/getNumCpGs.R")
   source("~/misc_R_scripts/getCpGLocs.R")
   if (genome == "hg19") BSgenome <- BSgenome.Hsapiens.UCSC.hg19
@@ -36,12 +40,12 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
                        IDs = IDs,
                        strand = strand(neg))
   table <- rbind.data.frame(posTab, negTab)
-  write.table(table, "seqs.tsv", col.names = F, row.names = F, quote = F, sep = "\t")
-  cmd <- "/opt/anaconda3/bin/python ~/misc_R_scripts/zymo_design.py seqs.tsv"
-  message("Launching Zymo Bisulfite Primer Seeker...")
-  system(cmd)
-  pri <- read.table("zymo_output.txt", sep = "\t", header = T)
-  system("rm seqs.tsv")
+  tabs <- split(table, .splitTable(table, nZymoDrivers))
+  message("Launching Zymo Bisulfite Primer Seeker Using ", nZymoDrivers, " drivers...")
+  mcmapply(.launchDriver, tabs, names(tabs), mc.cores = nZymoDrivers)
+  zymoFiles <- list.files(".", "^zymo_output.*tsv")
+  pri <- do.call(rbind, lapply(zymoFiles, read.table, sep = "\t", header = T))
+  system("rm zymo_input_* zymo_output_*")
   pri$amp <- paste0(pri$amp, "-C", pri$condition)
   pri <- split(pri, pri$ID)
   pri <- lapply(pri, .removeIdenticalPrimers)
@@ -77,12 +81,24 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
   return(all.primers)
 }
 
+.launchDriver <- function(tab, n) {
+  name <- paste0("zymo_input_", n, ".tsv")
+  write.table(tab, name, col.names = F, row.names = F, quote = F, sep = "\t")
+  cmd <- paste0("/opt/anaconda3/bin/python ~/misc_R_scripts/zymo_design.py ", name, " ", n)
+  system(cmd)
+}
+
 .checkAgainstOriginal <- function(df, ref) {
   pr <- GRanges(df$origin.region)
   ovlp <- findOverlaps(pr, ref, type = "equal")
   was.resized <- rep(T, nrow(df))
   was.resized[from(ovlp)] <- F
   return(was.resized)
+}
+
+.splitTable <- function(table, nZymoDrivers) {
+  df <- data.frame(id = unique(table$IDs))
+  return(floor(as.numeric(rownames(df)) %% nZymoDrivers))
 }
 
 # remove identical primers found under different conditions

@@ -123,11 +123,12 @@ def parse_page(driver, out, ID, condition):
     return failure
     
 
-
+# print(str(sys.argv[1]))
 seqs = open(str(sys.argv[1]))
 # seqs = open("seqs.tsv")
+n = str(sys.argv[2])
 seqs = csv.reader(seqs, delimiter="\t")
-out = open("zymo_output.txt", "w+")
+out = open("zymo_output_" + n + ".tsv", "w+")
 colNames = ["ID", "amp", "strand", "condition", "direction",
             "seq", "start", "size", "melting_temp"]
 out.write('\t'.join(colNames[:]) + '\n')
