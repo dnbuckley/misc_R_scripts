@@ -5,6 +5,8 @@ library(GenomicRanges)
     Hsapiens <- BSgenome.Hsapiens.UCSC.hg19
   } else if (genome == "hg38") {
     Hsapiens <- BSgenome.Hsapiens.UCSC.hg38
+  } else if (genome == "GRCh38") {
+    Hsapiens <- BSgenome.Hsapiens.NCBI.GRCh38
   } else message("invalid genome selection")
   chrs <- names(Hsapiens)[1:24]
   locs <- mclapply(chrs, function(x) start(matchPattern("CG", 
@@ -18,8 +20,8 @@ library(GenomicRanges)
 }
 
 # does what it says on the label
-getCpGLocs <- function(genome = "hg38", strand = NULL, cores = 1) {
-  if (Sys.info()["user"] == "dbuckley"){
+getCpGLocs <- function(genome = "hg38", strand = NULL, cores = 1, recalc = F) {
+  if (Sys.info()["user"] == "dbuckley" & !recalc){
     file <- paste0("~/Desktop/salhia_lab/useful_granges/cpg_locations_", genome, ".rds")
     cpgr <- readRDS(file)
   } else {
