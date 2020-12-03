@@ -1,5 +1,4 @@
 # get TCGA stage from file name
-name <- names[1]
 getTCGAstage <- function(name, clinDat = NULL, simplifyStage = T){
   if (is.null(clinDat)){
     clinDat <- read.table("~/misc_R_scripts/script_files/TCGA_450k_clinical_data.tsv", 

@@ -84,7 +84,7 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
 .launchDriver <- function(tab, n) {
   name <- paste0("zymo_input_", n, ".tsv")
   write.table(tab, name, col.names = F, row.names = F, quote = F, sep = "\t")
-  cmd <- paste0("/opt/anaconda3/bin/python ~/misc_R_scripts/zymo_design.py ", name, " ", n)
+  cmd <- paste0("/Users/dbuckley/anaconda3/bin/python ~/misc_R_scripts/zymo_design.py ", name, " ", n)
   system(cmd)
 }
 

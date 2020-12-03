@@ -2,9 +2,9 @@ library(rtracklayer)
 library(GenomicRanges)
 library(parallel)
 
-# memory efficient version, reads in only relavent segments
-# return mat will return a matrix of beta values with granges
-# as row names
+# memory efficient version, reads in only relevant segments
+# return mat will return a granges list or matrix of beta values 
+# with granges as row names
 summarizeBigWigFilesOver <- function(files, gr, cores = 4, returnMat = F){
   bws <- mclapply(files, import, which = gr, mc.cores = cores)
   bws <- mclapply(bws, .summarizeScoreOver, segs = gr, mc.cores = cores)

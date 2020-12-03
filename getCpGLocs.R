@@ -26,7 +26,7 @@ getCpGLocs <- function(genome = "hg38", strand = NULL, cores = 1, recalc = F) {
     cpgr <- readRDS(file)
   } else {
     source("~/misc_R_scripts/getRestrictionLocs.R")
-    cpgr <- .calcLocs(cores = cores)
+    cpgr <- .calcLocs(genome = genome, cores = cores)
   }
   if (!is.null(strand)) {
     if (strand == "+") {

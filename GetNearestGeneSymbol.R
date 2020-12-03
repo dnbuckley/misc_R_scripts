@@ -1,5 +1,6 @@
 library(GenomicFeatures)
 library(org.Hs.eg.db)
+library(org.Mm.eg.db)
 
 ### GetNearestGeneSymbolHg19
 # Find nearest gene
@@ -14,8 +15,13 @@ GetNearestGeneSymbol <- function (granges, refseq.genes=NULL, genome = "hg19") {
     source("~/misc_R_scripts/getTxDBOffline.R")
     refseq.genes <- genes(getTxDBOffline(genome))
   }
+  if (grepl("^mm", genome)) {
+    org <- org.Mm.eg.db
+  } else {
+    org <- org.Hs.eg.db
+  }
   distance <- distanceToNearest(granges, refseq.genes)
-  genelist <- select(org.Hs.eg.db, 
+  genelist <- select(org, 
                      keys = values(refseq.genes)[to(distance),], 
                      columns = c("SYMBOL"))
   output <- data.frame(nearest_gene=genelist$SYMBOL, 

@@ -5,7 +5,7 @@ library(Rsamtools)
 library(chromstaR)
 source("~/misc_R_scripts/getBSgenomeObj.R")
 
-# uses bismark to find where a primer is in a DMR region
+# uses bismark to find where a primer is in a DMR
 # because chris is too lazy to do it as he makes the primers
 
 # using bismark for this purpose: https://i.imgur.com/WQ6K6iE.jpg
@@ -14,6 +14,11 @@ source("~/misc_R_scripts/getBSgenomeObj.R")
 # query.seq <- "TTTTTAGGCGGGTTTGAGGTAAGGGAG"
 genome <- "hg19"
 buffer <- 100
+
+gr <- grs[[1]]
+query.seq <- multiplex$r.seq.rev[1]
+bispath = "/Users/dbuckley/Desktop/bin/Bismark/"
+bt2path = "/Users/dbuckley/Desktop/bin/"
 
 .makeFQ <- function(seq, tmpFile) {
   # dummy read name to trick bismark
@@ -45,10 +50,10 @@ alignLocalBismark <- function(gr, query.seq, genome, buffer = NULL,
   system(cmd)
   .makeFQ(query.seq, temp.fq)
   cmd <- paste0(bis, " --path_to_bowtie2 ", bt2path, " --se ", temp.fq, " genome/")
-  system(cmd, show.output.on.console = "invisible")
+  system(cmd)
   bam <- list.files(".", "bam$")
   mr <- as.numeric(system(paste0("samtools view ", bam, " | wc -l"), intern = T))
-  if (mr == 1) {
+  -if (mr == 1) {
     bam <- readBamFileAsGRanges(bam)
     primer.loc <- GRanges(seqnames = seqnames(gr), 
                           ranges = IRanges(start = start(gr)+start(bam)-1,
