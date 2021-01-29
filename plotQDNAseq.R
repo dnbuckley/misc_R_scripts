@@ -1,4 +1,5 @@
 library(ggplot2)
+library(Biobase)
 
 # generic gplot of QDNAseq sample from copyNumersCalled
 plotQDNAseq <- function(copyNumbersCalled, column, title = "CNV plot", 

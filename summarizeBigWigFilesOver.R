@@ -5,9 +5,16 @@ library(parallel)
 # memory efficient version, reads in only relevant segments
 # return mat will return a granges list or matrix of beta values 
 # with granges as row names
-summarizeBigWigFilesOver <- function(files, gr, cores = 4, returnMat = F){
-  bws <- mclapply(files, import, which = gr, mc.cores = cores)
-  bws <- mclapply(bws, .summarizeScoreOver, segs = gr, mc.cores = cores)
+summarizeBigWigFilesOver <- function(files, gr, cores = 1, returnMat = F){
+  if (cores > 1) {
+    message("NOTE: Sometimes multithreading crashes, if this fails set cores = 1")
+    bws <- mclapply(files, import, which = gr, mc.cores = cores)
+    bws <- mclapply(bws, .summarizeScoreOver, segs = gr, mc.cores = cores)
+  } else {
+    bws <- lapply(files, import, which = gr)
+    bws <- lapply(bws, .summarizeScoreOver, segs = gr)
+  }
+
   if (returnMat) {
     source("~/misc_R_scripts/getGrangesScoreMatrix.R")
     bws <- getGrangesScoreMatrix(bws)

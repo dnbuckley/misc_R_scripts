@@ -13,6 +13,8 @@ getZymoPrimers <- function(gr, IDs, genome = "hg38",
                            nZymoDrivers = 1){
   source("~/misc_R_scripts/getNumCpGs.R")
   source("~/misc_R_scripts/getCpGLocs.R")
+  # clear out any files from prior runs if they were canceled or failed
+  system("rm zymo_input_* zymo_output_*")
   if (genome == "hg19") BSgenome <- BSgenome.Hsapiens.UCSC.hg19
   if (genome == "hg38") BSgenome <- BSgenome.Hsapiens.UCSC.hg38
   original.granges <- GRanges(gr)
