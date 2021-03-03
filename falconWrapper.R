@@ -1,6 +1,5 @@
-library(canopy)
+library(Canopy)
 library(falcon)
-source('~/misc_R_scripts/falcon.qc.R')
 
 # multithreaded wrapper functions for processing canopy ASCN;
 # preproc pipeline: bt2 -> picard MarkDuplicates -> GATK HaplotypeCaller -> GATK ASEReadCounter
@@ -58,6 +57,7 @@ falconWrapper <- function(primaryFile, relapseFile, normalFile,
 }
 
 .runFalcon <- function(primary.chr, relapse.chr, chr, rdep.primary, rdep.relapse, outDir, doQC) {
+  source('~/misc_R_scripts/falcon.qc.R')
   relapse.chr=relapse.chr[relapse.chr[,'Match_Norm_Seq_Allele1']!=' ',]
   relapse.chr=relapse.chr[relapse.chr[,'Match_Norm_Seq_Allele2']!=' ',]
   relapse.chr=relapse.chr[relapse.chr[,'Reference_Allele']!=' ',]
